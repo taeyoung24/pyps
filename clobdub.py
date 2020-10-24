@@ -6,7 +6,7 @@ import threading
 import pychromecast
 import requests
 
-ghome_ip = '192.168.219.105'
+ghome_ip = '' # Put your ip
 
 with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
     s.connect(('8.8.8.8', 80))
@@ -46,7 +46,7 @@ res_headers = {
 }
 
 def say(content, voice=5):
-    res = requests.get(f'https://clovadubbing.naver.com/system/voicefont/{voice}/preview?text={content}', headers=res_headers)
+    res = requests.get(f'https://clovadubbing.naver.com/api/v1/system/voicefont/{voice}/preview?text={content}', headers=res_headers)
     res.encoding = 'utf-8'
 
     with open('cache.mp3', 'wb') as f:
