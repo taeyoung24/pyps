@@ -1,38 +1,89 @@
+import sys, os
+import time
+import http.server
+import socket
+import threading
+import pychromecast
 import requests
 
+ghome_ip = '192.168.219.105'
+
+with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
+    s.connect(('8.8.8.8', 80))
+    local_ip, _ = s.getsockname()
+
+PORT = 8000
+
+class StoppableHTTPServer(http.server.HTTPServer):
+    def run(self):
+        try:
+            print('Server started at %s:%s'%(local_ip, self.server_address[1]))
+            self.serve_forever()
+        except KeyboardInterrupt:
+            pass
+        finally:
+            self.server_close()
+
+server = StoppableHTTPServer(('', PORT), http.server.SimpleHTTPRequestHandler)
+thread = threading.Thread(None, server.run)
+thread.start()
+
+ghome = pychromecast.Chromecast(ghome_ip)
+print(ghome)
+ghome.wait()
+
+# set volume level ... no beep sound
+volume = ghome.status.volume_level
+ghome.set_volume(0)
 
 
-headers = {
-    'cookie': 'NNB=SYQQ4MBIGWCF4; NRTK=ag#all_gr#1_ma#-2_si#0_en#0_sp#0; ncvid=#vid#_182.221.133.130j2TQ; nid_inf=1076240214; NID_AUT=+GPR1flqKEc0LOCUILPmZ3UGYeLvctI1YbfcsdH73A+94ACKiuY2IZR1M8D2biOO; NID_JKL=2G1kibd3/UMQZUYJwUR/A/bugFLBnVlpqt+D6BgRbsE=; NID_SES=AAABfgSTzl2dQ8W88HqDniQFXli77sanhEpBBODT0hoSUGjbRVsPmRpk4nr2zNEDLvXrbXWHajt+/zIx21lXXYtArclrBTAvsPvslcGJX9HJPTW73jfa5Uhx8o2BNWyNZ/bcO13vZa1yLjek3osOWUaOT/8ciK6LBNNjinQDnBygqsL0b23iuRkAneuXtfJy8M2T3IUz2d1V4HtVkSGqL5pyh0VmLHM3hA0rFLJPJns9velnghEky+4WVEIeUoZXmrG4RZZNTTi1tikN32a8p72KwOCA+uvY+lqWQr1UUCnEZ/yECn6aBreyDXztOO4Ot4W1Ue+EZpyh65fciPJSs5hBl83mtYi9t7oEWWu+qKy+/NaYybLb9owJ54TJNXUylA+0dnogQZKu5Odg69e2ApDzMjeOUxLSqEAwNEps94V7I3jywPd9jI5WbVmc1K4Bo5zP/SNinudoeVOPXtJWsbVvApH4WdPO1wm0IAEeiqctNr8Yj+6QO4ioXCEkgKwMNwJKZw==; ncu=98aa5862772843ed8e6f0c3b729ac69909e561f9d698; nci4=f4c62f0b1953388ed13f786f629de1943c7b856302589f64a8d4eb46b6a5778948a0125b0f57d2edf06247e2a10bac729daf9b917d497a5e69ac7ba94f58d322444b6e497e31424d6443705649447c5f6d2e5e517057642a646b4e6e5c136e6641654a7b7679587f4c010d0f0009027572070f2403307e7c14666d66087d600d7e6d22; ncmc4=7240a98d9fd5be0857b9fee9e40f721eadf912f4bda1419e64d4e717889b488f4e8874836045dad0802c30ee57830cd22b3d1439ddc28b92875bf309efee1addb42a; ncvc2=f2c032081d422987e4056651748ff285287b8563327e8242a0605d853d16f63c7b; JSESSIONID=9B8459C7BEB51B54DDBD8B7AEA531F63',
-    'user-agent': 'Mozilla/5.0 (Linux; Android 8.0; Pixel 2 Build/OPD3.170816.012) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/83.0.4103.106 Mobile Safari/537.36'
+
+res_cookies = 'NNB=PA3JGUIIV4VV6; NRTK=ag#all_gr#2_ma#0_si#0_en#0_sp#0; nx_ssl=2; nid_inf=-1380795050; NID_AUT=b2QTezBSkCJOBe2VX4MnZxVZ7v+EgxFH1iP5KVuiieLn0/Yd1xAaSVlBUnDy24pi; NID_JKL=gR814KDTjfq/FT+Hv6fMc6Xp+latiGLelNJG1YoClkc=; NMUPOPEN=Y; _gid=GA1.2.410598193.1599145489; _ga_7VKFYR6RV1=GS1.1.1599145583.7.0.1599146274.60; _ga=GA1.2.618290616.1596698422; NDARK=N; NID_SES=AAABf65RANFU86MOY0ivrV1sgaZpDiOKZQgbv7S6ZqGUU7M+0UePbArpF2yvxzSV0h/DLE/1ErI9L+D/Bnt4P0Pk6JThc3C8WZkn3zWAYxhcD/t5Uu2ckKRRZRZUIWnObpMpGXyQ9IyWpm5QpIfs5evi1b53MfklVWZHivf2kfk0WTGNmN1E5Eqs1vKaKTYRU1NwD8CRuWcnp9PGOFpZb5oArCPnv+gDcn/SHfhbQp/WnttS63AVUNR1Yj4MLs7wB+0e+aZpgIzWwbaRJ3CAbG6Q2+XgZmYbc3e+Wg45mPd6HQoGBpLFiEOr/Cg22ow45hhCEoyAIxVNxj0pzUHCj9SX3P2phxwUN1Dz9R0GbcVZw7YH+WDAfwBSuqQFvJA9jAyfR02T+UtK3Zshlkw161XTD8VkHmoxC+iUmGL6/oQ2BaqjyLRSLACQ/jhyfmhOSTz8lAfrkrncdcE9y/YnW45L+eJe0cMHyFGTIvHFXL4i9WCQot946oXss/Gy2mmaKosVlA==; CD_AUT=57969bb15c5effedd5c94ad797958aeefa38e2fb82ac09fcaaaa62c79151e4ef69773696fae2a35b9dc348039090cf49'
+
+res_headers = {
+    'cookie': res_cookies,
+    'content-type': 'audio/mpeg;charset=UTF-8'
 }
 
-def check_attendance(content):
-    global headers
-    URL = 'https://m.cafe.naver.com/AttendancePost.nhn'
-    data_form = {
-        'attendancePost.cafeId': 16854404,
-        'attendancePost.menuId': 20,
-        'attendancePost.userId': 'startaey1024',
-        'attendancePost.content': content
-    }
-    requests.post(URL, headers=headers, data=data_form)
+def say(content, voice=5):
+    res = requests.get(f'https://clovadubbing.naver.com/system/voicefont/{voice}/preview?text={content}', headers=res_headers)
+    res.encoding = 'utf-8'
 
-def write_memo(content):
-    global headers
-    URL = 'https://m.cafe.naver.com/MemoPost.nhn'
-    n_headers = {
-        'cookie': headers['cookie'],
-        'user-agent': headers['user-agent'],
-        'referer': 'https://m.cafe.naver.com/MemoList.nhn?search.clubid=16854404&search.menuid=132'
-    }
-    data_form = {
-        'memoPost.cafeId': 16854404,
-        'memoPost.menuId': 132,
-        'memoPost.content': content
-    }
-    requests.post(URL, headers=n_headers, data=data_form)
+    with open('cache.mp3', 'wb') as f:
+        f.write(res.content)
 
-# write_memo('실험')
-for i in range(5):
-    check_attendance(i)
+    time.sleep(0.1)
+    fname = 'cache.mp3'
+
+    mc = ghome.media_controller
+
+    mp3_path = 'http://%s:%s/%s'%(local_ip, PORT, fname)
+    mc.play_media(mp3_path, 'audio/mp3')
+    print(mc)
+    # pause atm
+    mc.block_until_active()
+    mc.pause()
+    time.sleep(1); ghome.set_volume(0.3); time.sleep(0.5)
+
+    # play
+    mc.play(); 
+    while not mc.status.player_is_idle:
+        time.sleep(0.1)
+    os.remove('cache.mp3')
+    mc.stop()
+
+say("안녕하세요?", voice=5)
+say("네 안녕하세요! 오랜만이네요?", voice=14)
+say("가위 바위 보 하실래요?", voice=5)
+say("아니요, 전 그런거 싫어해요.", voice=14)
+say("그럼 뭘 하고 싶은데요?", voice=5)
+say("하고 싶은 게 딱히 없네요.", voice=14)
+say("아, 그럼 전 가볼게요. 바빠서요..", voice=5)
+say("네, 하하.. 안녕히가세요.", voice=14)
+
+# kill all
+ghome.quit_app()
+server.shutdown()
+thread.join()
+
+
