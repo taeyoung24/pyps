@@ -1,3 +1,5 @@
+"use strict";
+
 class Matrixcompute {
     random(row, col) {
         let retm = [];
@@ -91,8 +93,9 @@ class Matrixcompute {
 
 
 class Neuralnetwork extends Matrixcompute {
-    constructor(layer_list, learning_rate=0.02) {
+    constructor(layer_list, learning_rate=0.02, name='') {
         super();
+        this.name = name;
         this.layers = layer_list;
         this.lr = learning_rate;
         let w = [];
@@ -150,3 +153,23 @@ class Neuralnetwork extends Matrixcompute {
         return this.T(pred)[0];
     }
 }
+
+class Words {
+    constructor(word_set) {
+        this.set = word_set;
+        this.len = word_set.length;
+    }
+
+    onehot(word) {
+        let retl = [];
+        const idx = this.set.indexOf(word);
+        for (let i = 0; i < this.len; i++) {
+            if (i != idx) retl[i] = 0;
+            else retl[i] = 1;
+        }
+        return retl;
+    }
+}
+
+module.exports.Neuralnetwork = Neuralnetwork;
+module.exports.Words = Words;
