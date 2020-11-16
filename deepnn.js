@@ -6,7 +6,7 @@ class Matrixcompute {
         for (let i = 0; i < row; i++) {
             let inn = [];
             for (let j = 0; j < col; j++) {
-                inn[j] = Math.random();
+                inn[j] = Math.random() * 2 - 1;
             }
             retm[i] = inn;
         }
@@ -142,6 +142,17 @@ class Neuralnetwork extends Matrixcompute {
         }
     }
 
+    frontprop(input_data, counts=this.weights.length) {
+        input_data = this.T(this.array2(input_data));
+        let pred = input_data;
+        // 순전파
+        for (let i = 0; i < counts; i++) {
+            pred = this.dot(this.weights[i], pred);
+            pred = this.activate(pred);
+        }
+        return this.T(pred)[0];
+    }
+
     query(input_data) {
         input_data = this.T(this.array2(input_data));
         let pred = input_data;
@@ -151,6 +162,37 @@ class Neuralnetwork extends Matrixcompute {
             pred = this.activate(pred);
         }
         return this.T(pred)[0];
+    }
+}
+
+class NaturalLanguage extends Neuralnetwork {
+    constructor(vector_len, Words, lr=0.1) {
+        super([Words.len, vector_len, Words.len], lr);
+        this.vector_len = vector_len;
+        this.Words = Words;
+    }
+
+    train(split_sentence_array, counts=1000) {
+        let ssa = split_sentence_array;
+        let train_set = [];
+
+        for (let i = 0; i < ssa.length; i++) {
+            if (this.Words.set.indexOf(ssa[i]) == -1) continue;
+            const one1 = i == 0 ? 0 : [this.Words.onehot(ssa[i - 1])];
+            const one2 = i == ssa.length - 1 ? 0 : [this.Words.onehot(ssa[i + 1])];
+            const onefin = this.Words.onehot(ssa[i]);
+            train_set.push([super.add(one1, one2)[0], onefin]);
+        }
+
+        for (let i = 0; i < counts; i++) {
+            for (let j = 0; j < train_set.length; j++){
+                super.train(train_set[j][0], train_set[j][1]);
+            }
+        }
+    }
+
+    vector(word) {
+        return super.frontprop(this.Words.onehot(word), 1);
     }
 }
 
@@ -173,3 +215,4 @@ class Words {
 
 module.exports.Neuralnetwork = Neuralnetwork;
 module.exports.Words = Words;
+module.exports.NaturalLanguage = NaturalLanguage;
