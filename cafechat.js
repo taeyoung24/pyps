@@ -59,7 +59,14 @@ class CafeChatBot {
         });
         this.timer_j = setInterval(() => {
             this.channelListUpdate();
-        }, 60000 * 60 * 6);
+        }, 60000 * 60 * 1);
+        this.timer_k = setInterval(() => {
+            this.getChannelList().then(rooms => {
+                if (rooms.join('') != this.activatedChannels.join('')) {
+                    rooms.forEach(room => {this.activeSocket(room.channelId)});
+                }
+            });
+        }, 10000);
         this.setMemberNameDict(MainChannelID);
         this.callbacks = callbacks;
         this.MainChannelID = MainChannelID;
@@ -74,7 +81,15 @@ class CafeChatBot {
                 },
                 json: true
             }, (err, resp, body) => {
-                resolve(body.message.result.channelList);
+                if (body != undefined) {
+                    try {
+                        let msg = body.message.result.channelList;
+                        resolve(msg);
+                    } catch (error) {
+                        resolve([]);
+                    }
+                    
+                } else resolve([]);
             });
         });
     }
@@ -131,7 +146,7 @@ class CafeChatBot {
                 const ci = room.channelId;
                 const lastUpdate = room.updatedAt;
                 const now = new Date().getTime();
-                if (now - lastUpdate >= 60000 * 60 * 24) {
+                if (now - lastUpdate >= 60000 * 60 * 6) {
                     if (ci !== this.MainChannelID) {
                         this.deactivateSocket(ci);
                     }
@@ -148,6 +163,7 @@ class CafeChatBot {
             let sock = new CafeChat(this.botId, channelId, this.token);
             sock.socket.on('msg', e => {
                 e.channel = sock;
+                e.bot = this;
                 this.callbacks['msg'](e);
             });
             sock.socket.connect();
@@ -164,6 +180,46 @@ class CafeChatBot {
             this.activatedChannels.splice(idx, 1);
             this.deactivateSocket(channelId);
             this.quitChannel(channelId);
+        }
+    }
+
+    replyComment(cafeId, articleId, refCommentId, content) {
+        try {
+            request.post({
+                uri: 'https://apis.naver.com/cafe-web/cafe-mobile/CommentReply.json',
+                method: 'POST',
+                headers: {
+                    "cookie": this.token
+                },
+                form: {
+                    "cafeId": cafeId,
+                    "articleId": articleId,
+                    "refCommentId": refCommentId,
+                    "content": content
+                }
+            }, () => {});
+        } catch (error) {
+            console.log(error);
+        }
+    }
+
+    modifyComment(cafeId, articleId, commentId, content) {
+        try {
+            request.post({
+                uri: 'https://apis.naver.com/cafe-web/cafe-mobile/CommentModify.json',
+                method: 'POST',
+                headers: {
+                    "cookie": this.token
+                },
+                form: {
+                    "cafeId": cafeId,
+                    "articleId": articleId,
+                    "commentId": commentId,
+                    "content": content
+                }
+            }, () => {});
+        } catch (error) {
+            console.log(error);
         }
     }
 }
